@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게시판</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { min-height: 100vh; margin: 0; font-family: sans-serif; background: #f5f5f5; color: #222; }
+        main { width: min(760px, calc(100% - 32px)); margin: 40px auto; }
+        section, .top { margin-bottom: 20px; padding: 28px; background: #fff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+        .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+        h1, h2 { margin: 0 0 12px; }
+        h1 { font-size: 24px; }
+        h2 { font-size: 20px; }
+        p { line-height: 1.6; }
+        input, textarea { width: 100%; margin: 7px 0 14px; padding: 11px; border: 1px solid #ccc; border-radius: 5px; font: inherit; }
+        textarea { min-height: 130px; resize: vertical; }
+        button { padding: 10px 16px; border: 0; border-radius: 5px; background: #008cba; color: #fff; font: inherit; font-weight: bold; cursor: pointer; }
+        button:hover { background: #007399; }
+        button:disabled { opacity: .65; cursor: wait; }
+        #logoutBtn { background: #555; white-space: nowrap; }
+        #posts { display: grid; gap: 12px; padding: 0; list-style: none; }
+        .post { padding: 18px; border: 1px solid #e3e3e3; border-radius: 7px; }
+        .post h3 { margin: 0 0 6px; font-size: 18px; }
+        .post p { margin: 0; white-space: pre-wrap; }
+        .meta, #postMessage { color: #666; font-size: 13px; }
+        #postMessage.error { color: #c62828; }
+        .empty { margin: 0; color: #666; }
+        @media (max-width: 520px) { .top { align-items: flex-start; flex-direction: column; } section, .top { padding: 22px; } }
+    </style>
+</head>
+<body>
+    <main>
+        <header class="top">
+            <div>
+                <h1>환영합니다!</h1>
+                <p><strong id="email"></strong> 계정으로 로그인했습니다.</p>
+                <p id="roleMessage" class="meta"></p>
+            </div>
+            <button id="logoutBtn" type="button">로그아웃</button>
+        </header>
+
+        <section id="creatorTools" hidden>
+            <h2>새 게시물</h2>
+            <form id="postForm">
+                <label for="postTitle">제목</label>
+                <input id="postTitle" maxlength="100" required>
+
+                <label for="postContent">내용</label>
+                <textarea id="postContent" maxlength="2000" required></textarea>
+
+                <button id="postBtn" type="submit">게시물 올리기</button>
+                <p id="postMessage" role="alert" aria-live="polite"></p>
+            </form>
+        </section>
+
+        <section>
+            <h2>게시물</h2>
+            <ol id="posts"></ol>
+        </section>
+    </main>
+
+    <script>
+        const posts = document.getElementById('posts');
+        const creatorTools = document.getElementById('creatorTools');
+        const postForm = document.getElementById('postForm');
+        const postBtn = document.getElementById('postBtn');
+        const postMessage = document.getElementById('postMessage');
+
+        async function request(url, options) {
+            const response = await fetch(url, { credentials: 'same-origin', ...options });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || '요청을 처리하지 못했습니다.');
+            return result;
+        }
+
+        function setPostMessage(text, isError = false) {
+            postMessage.textContent = text;
+            postMessage.classList.toggle('error', isError);
+        }
+
+        function renderPosts(items) {
+            posts.replaceChildren();
+            if (items.length === 0) {
+                const empty = document.createElement('li');
+                empty.className = 'empty';
+                empty.textContent = '아직 등록된 게시물이 없습니다.';
+                posts.append(empty);
+                return;
+            }
+
+            for (const post of items) {
+                const item = document.createElement('li');
+                item.className = 'post';
+                const title = document.createElement('h3');
+                const content = document.createElement('p');
+                const meta = document.createElement('p');
+                title.textContent = post.title;
+                content.textContent = post.content;
+                meta.className = 'meta';
+                meta.textContent = `${post.author} · ${new Date(post.created_at).toLocaleString('ko-KR')}`;
+                item.append(title, content, meta);
+                posts.append(item);
+            }
+        }
+
+        async function loadPosts() {
+            const { posts: items } = await request('/api/posts');
+            renderPosts(items);
+        }
+
+        async function loadUser() {
+            try {
+                const user = await request('/api/me');
+                document.getElementById('email').textContent = user.email;
+                creatorTools.hidden = !user.canPost;
+                document.getElementById('roleMessage').textContent = user.canPost
+                    ? '게시 권한이 있는 계정입니다. 게시물을 올릴 수 있습니다.'
+                    : '게시물 작성 권한이 없습니다.';
+                await loadPosts();
+            } catch {
+                window.location.replace('login.html');
+            }
+        }
+
+        postForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            postBtn.disabled = true;
+            setPostMessage('게시 중...');
+            try {
+                await request('/api/posts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: document.getElementById('postTitle').value,
+                        content: document.getElementById('postContent').value
+                    })
+                });
+                postForm.reset();
+                setPostMessage('게시물을 올렸습니다.');
+                await loadPosts();
+            } catch (error) {
+                setPostMessage(error.message, true);
+            } finally {
+                postBtn.disabled = false;
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
+            window.location.replace('login.html');
+        });
+
+        loadUser();
+    </script>
+</body>
+</html>

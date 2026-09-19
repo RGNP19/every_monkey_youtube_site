@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 / 회원가입</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #f5f5f5; }
+        .box { width: min(300px, calc(100vw - 48px)); padding: 40px; text-align: center; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+        h2 { margin: 0 0 20px; color: #333; }
+        input[type="text"], input[type="password"] { box-sizing: border-box; width: 100%; margin: 8px 0; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        .checkbox-container { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 15px 0; font-size: 14px; color: #555; cursor: pointer; }
+        .checkbox-container input { width: 16px; height: 16px; cursor: pointer; }
+        button { width: 100%; margin-top: 10px; padding: 12px; border: 0; border-radius: 4px; background: #008cba; color: #fff; font-size: 16px; font-weight: bold; cursor: pointer; transition: background .2s; }
+        button:hover { background: #007399; }
+        button:disabled { cursor: wait; opacity: .7; }
+        #message { min-height: 20px; margin: 12px 0 0; font-size: 14px; color: #c62828; }
+        #message.success { color: #2e7d32; }
+        .hint { margin: 0 0 8px; color: #666; font-size: 12px; line-height: 1.5; text-align: left; }
+    </style>
+</head>
+<body>
+    <main class="box">
+        <h2 id="pageTitle">로그인</h2>
+        <form id="authForm">
+            <input type="text" id="userEmail" autocomplete="username" placeholder="이메일 또는 아이디" required>
+            <input type="password" id="userPassword" autocomplete="current-password" placeholder="비밀번호" minlength="8" required>
+            <p class="hint">아이디는 한글·영문·숫자·._-로 2~30자 입력할 수 있습니다.</p>
+
+            <label class="checkbox-container">
+                <input type="checkbox" id="signUpModeCheck">
+                <span>처음 오셨나요? (회원가입하기)</span>
+            </label>
+
+            <button id="actionBtn" type="submit">로그인하기</button>
+            <p id="message" role="alert" aria-live="polite"></p>
+        </form>
+    </main>
+
+    <script>
+        const form = document.getElementById('authForm');
+        const title = document.getElementById('pageTitle');
+        const btn = document.getElementById('actionBtn');
+        const checkBox = document.getElementById('signUpModeCheck');
+        const passwordInput = document.getElementById('userPassword');
+        const message = document.getElementById('message');
+
+        function setMessage(text, success = false) {
+            message.textContent = text;
+            message.classList.toggle('success', success);
+        }
+
+        async function readServerResponse(response) {
+            const text = await response.text();
+            if (!text) {
+                throw new Error('로그인 서버가 실행되지 않았습니다. 터미널에서 npm start를 실행한 뒤 http://localhost:3000/login.html로 접속해 주세요.');
+            }
+            try {
+                return JSON.parse(text);
+            } catch {
+                throw new Error('로그인 서버로 접속해야 합니다. Live Server 대신 npm start로 실행해 주세요.');
+            }
+        }
+
+        checkBox.addEventListener('change', () => {
+            const isSignUp = checkBox.checked;
+            title.textContent = isSignUp ? '회원가입' : '로그인';
+            btn.textContent = isSignUp ? '가입하기' : '로그인하기';
+            btn.style.backgroundColor = isSignUp ? '#4CAF50' : '#008CBA';
+            passwordInput.autocomplete = isSignUp ? 'new-password' : 'current-password';
+            setMessage('');
+        });
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const email = document.getElementById('userEmail').value.trim();
+            const password = passwordInput.value;
+            const isSignUp = checkBox.checked;
+
+            if (password.length < 8) {
+                setMessage('비밀번호는 8자 이상 입력해 주세요.');
+                return;
+            }
+
+            btn.disabled = true;
+            setMessage(isSignUp ? '회원가입 중...' : '로그인 중...', true);
+
+            try {
+                const response = await fetch(isSignUp ? '/api/signup' : '/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ email, password })
+                });
+                const result = await readServerResponse(response);
+                if (!response.ok) throw new Error(result.message || '요청을 처리하지 못했습니다.');
+                window.location.href = 'welcome.html';
+            } catch (error) {
+                setMessage(error.message);
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

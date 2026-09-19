@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>안녕하세요</title>
+    <style>
+        /* 오리 링크와 로그인 버튼 공통 스타일 */
+    #login-btn {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 20px;
+        border-radius: 50px; /* 둥글둥글한 알약 모양 */
+        text-decoration: none;
+        font-weight: bold;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 20px;
+        border-radius: 50px; /* 둥글둥글한 알약 모양 */
+        text-decoration: none;
+        font-weight: bold;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    /* 1. 유튜브 오리 버튼 */
+    .link {
+        background-color: #ffeb3b; /* 오리 느낌 노란색 */
+        color: #333;
+        gap: 8px; /* 오리 이미지와 글자 사이 간격 */
+    }
+
+    /* 2. 로그인 버튼 */
+    #login-btn {
+        background-color: #ff4757; /* 시선을 끄는 빨간색 */
+        color: white;
+    }
+
+    /* 마우스를 올렸을 때 (Hover 효과) */
+    .link:hover, #login-btn:hover {
+        transform: scale(1.08); /* 크기가 살짝 커짐 */
+        box-shadow: 0 5px 15px rgba(0,0,0,0.15); /* 부드러운 그림자 */
+    }
+    </style>
+</head>
+<body>
+    유튜브 구독을 안했나요? 오리를 눌러 구독하세요(ai는 못 들어옴ㅋㅋㅋ)<br>
+    유튜브를 구독해야지만 로그인을 할 수 있습니다<br><br>
+    
+    <!-- 오리 링크에 id="duck-link"를 추가했습니다 -->
+    <a class="link" id="duck-link" href="https://www.youtube.com/@every%EB%AA%BD%ED%82%A4" target="_blank">
+        <img width="40" src="./이미지 보관 폴더/duck.webp">
+    </a><br>
+
+    <!-- 로그인 링크에 id="login-btn"을 추가했습니다 -->
+    <a href="login.html" id="login-btn">
+        로그인하기!!!
+    </a>
+
+    <script>
+        // HTML 엘리먼트 가져오기
+        const duckLink = document.getElementById('duck-link');
+        const loginBtn = document.getElementById('login-btn');
+
+        // 오리 링크를 클릭했을 때 실행할 함수
+        duckLink.addEventListener('click', function() {
+            // 숨겨져 있던 로그인 버튼을 화면에 보여줍니다
+            loginBtn.style.display = 'inline-block'; 
+        });
+    </script>
+</body>
+</html>

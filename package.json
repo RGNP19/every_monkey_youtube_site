@@ -1,0 +1,7 @@
+{
+  "name": "every-monkey-site",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  }
+}
